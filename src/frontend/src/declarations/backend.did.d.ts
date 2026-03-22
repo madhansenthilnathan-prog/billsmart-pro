@@ -10,10 +10,143 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export type BillId = string;
+export interface Customer {
+  'id' : CustomerId,
+  'owner' : Principal,
+  'gstNumber' : string,
+  'name' : string,
+  'createdAt' : Time,
+  'address' : string,
+  'phone' : string,
+}
+export type CustomerId = string;
+export interface DashboardStats {
+  'totalExpenses' : Money,
+  'totalSales' : Money,
+  'totalPurchases' : Money,
+  'profitEstimate' : Money,
+  'lowStockItems' : Array<Product>,
+}
+export interface Expense {
+  'id' : ExpenseId,
+  'owner' : Principal,
+  'date' : Time,
+  'createdAt' : Time,
+  'description' : string,
+  'category' : string,
+  'amount' : Money,
+}
+export type ExpenseId = string;
+export type GSTPercent = bigint;
+export interface GSTR1Sale {
+  'customerName' : string,
+  'date' : Time,
+  'invoiceNumber' : string,
+  'totalAmount' : Money,
+  'taxAmount' : Money,
+  'subtotal' : Money,
+}
+export type GSTType = { 'igst' : null } |
+  { 'cgst_sgst' : null };
+export type HSNCode = string;
+export type InvoiceId = string;
+export interface InvoiceItem {
+  'qty' : bigint,
+  'cgst' : Money,
+  'igst' : Money,
+  'rate' : Money,
+  'sgst' : Money,
+  'gstPercent' : GSTPercent,
+  'hsnCode' : HSNCode,
+  'productId' : ProductId,
+  'productName' : string,
+  'amount' : Money,
+}
+export type Money = bigint;
+export type PaymentId = string;
+export interface Product {
+  'id' : ProductId,
+  'sku' : string,
+  'stockQty' : bigint,
+  'owner' : Principal,
+  'name' : string,
+  'createdAt' : Time,
+  'gstPercent' : GSTPercent,
+  'sellingPrice' : Money,
+  'hsnCode' : HSNCode,
+  'updatedAt' : Time,
+  'category' : string,
+  'costPrice' : Money,
+}
+export type ProductId = string;
+export interface PurchaseBill {
+  'id' : BillId,
+  'owner' : Principal,
+  'date' : Time,
+  'createdAt' : Time,
+  'totalAmount' : Money,
+  'vendorId' : VendorId,
+  'billNumber' : string,
+  'items' : Array<PurchaseItem>,
+  'vendorName' : string,
+}
+export interface PurchaseItem {
+  'qty' : bigint,
+  'productId' : ProductId,
+  'productName' : string,
+  'costPrice' : Money,
+  'amount' : Money,
+}
+export interface PurchaseSummary {
+  'date' : Time,
+  'totalAmount' : Money,
+  'billNumber' : string,
+  'vendorName' : string,
+}
+export interface SalesInvoice {
+  'id' : InvoiceId,
+  'customerName' : string,
+  'owner' : Principal,
+  'date' : Time,
+  'createdAt' : Time,
+  'invoiceNumber' : string,
+  'totalAmount' : Money,
+  'notes' : string,
+  'customerId' : CustomerId,
+  'gstType' : GSTType,
+  'items' : Array<InvoiceItem>,
+  'taxAmount' : Money,
+  'taxMode' : TaxMode,
+  'subtotal' : Money,
+}
+export type TaxMode = { 'inclusive' : null } |
+  { 'exclusive' : null };
+export type Time = bigint;
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface Vendor {
+  'id' : VendorId,
+  'owner' : Principal,
+  'gstNumber' : string,
+  'name' : string,
+  'createdAt' : Time,
+  'address' : string,
+  'phone' : string,
+}
+export type VendorId = string;
+export interface VendorPayment {
+  'id' : PaymentId,
+  'owner' : Principal,
+  'date' : Time,
+  'createdAt' : Time,
+  'vendorId' : VendorId,
+  'notes' : string,
+  'amount' : Money,
+  'vendorName' : string,
+}
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -43,11 +176,41 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createCustomer' : ActorMethod<[Customer], undefined>,
+  'createExpense' : ActorMethod<[Expense], undefined>,
+  'createProduct' : ActorMethod<[Product], undefined>,
+  'createPurchaseBill' : ActorMethod<[PurchaseBill], undefined>,
+  'createSalesInvoice' : ActorMethod<[SalesInvoice], undefined>,
+  'createVendor' : ActorMethod<[Vendor], undefined>,
+  'createVendorPayment' : ActorMethod<[VendorPayment], undefined>,
+  'deleteCustomer' : ActorMethod<[CustomerId], undefined>,
+  'deleteExpense' : ActorMethod<[ExpenseId], undefined>,
+  'deleteProduct' : ActorMethod<[ProductId], undefined>,
+  'deletePurchaseBill' : ActorMethod<[BillId], undefined>,
+  'deleteSalesInvoice' : ActorMethod<[InvoiceId], undefined>,
+  'deleteVendor' : ActorMethod<[VendorId], undefined>,
+  'deleteVendorPayment' : ActorMethod<[PaymentId], undefined>,
+  'getAllCustomers' : ActorMethod<[], Array<Customer>>,
+  'getAllExpenses' : ActorMethod<[], Array<Expense>>,
+  'getAllProducts' : ActorMethod<[], Array<Product>>,
+  'getAllPurchaseBills' : ActorMethod<[], Array<PurchaseBill>>,
+  'getAllSalesInvoices' : ActorMethod<[], Array<SalesInvoice>>,
+  'getAllVendorPayments' : ActorMethod<[], Array<VendorPayment>>,
+  'getAllVendors' : ActorMethod<[], Array<Vendor>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getDashboardStats' : ActorMethod<[], DashboardStats>,
+  'getProductById' : ActorMethod<[ProductId], [] | [Product]>,
+  'getPurchaseBillById' : ActorMethod<[BillId], [] | [PurchaseBill]>,
+  'getPurchaseSummary' : ActorMethod<[Time, Time], Array<PurchaseSummary>>,
+  'getSalesForGSTR1' : ActorMethod<[Time, Time], Array<GSTR1Sale>>,
+  'getSalesInvoiceById' : ActorMethod<[InvoiceId], [] | [SalesInvoice]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateCustomer' : ActorMethod<[CustomerId, Customer], undefined>,
+  'updateProduct' : ActorMethod<[ProductId, Product], undefined>,
+  'updateVendor' : ActorMethod<[VendorId, Vendor], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

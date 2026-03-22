@@ -24,7 +24,144 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const CustomerId = IDL.Text;
+export const Time = IDL.Int;
+export const Customer = IDL.Record({
+  'id' : CustomerId,
+  'owner' : IDL.Principal,
+  'gstNumber' : IDL.Text,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'address' : IDL.Text,
+  'phone' : IDL.Text,
+});
+export const ExpenseId = IDL.Text;
+export const Money = IDL.Nat;
+export const Expense = IDL.Record({
+  'id' : ExpenseId,
+  'owner' : IDL.Principal,
+  'date' : Time,
+  'createdAt' : Time,
+  'description' : IDL.Text,
+  'category' : IDL.Text,
+  'amount' : Money,
+});
+export const ProductId = IDL.Text;
+export const GSTPercent = IDL.Nat;
+export const HSNCode = IDL.Text;
+export const Product = IDL.Record({
+  'id' : ProductId,
+  'sku' : IDL.Text,
+  'stockQty' : IDL.Nat,
+  'owner' : IDL.Principal,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'gstPercent' : GSTPercent,
+  'sellingPrice' : Money,
+  'hsnCode' : HSNCode,
+  'updatedAt' : Time,
+  'category' : IDL.Text,
+  'costPrice' : Money,
+});
+export const BillId = IDL.Text;
+export const VendorId = IDL.Text;
+export const PurchaseItem = IDL.Record({
+  'qty' : IDL.Nat,
+  'productId' : ProductId,
+  'productName' : IDL.Text,
+  'costPrice' : Money,
+  'amount' : Money,
+});
+export const PurchaseBill = IDL.Record({
+  'id' : BillId,
+  'owner' : IDL.Principal,
+  'date' : Time,
+  'createdAt' : Time,
+  'totalAmount' : Money,
+  'vendorId' : VendorId,
+  'billNumber' : IDL.Text,
+  'items' : IDL.Vec(PurchaseItem),
+  'vendorName' : IDL.Text,
+});
+export const InvoiceId = IDL.Text;
+export const GSTType = IDL.Variant({
+  'igst' : IDL.Null,
+  'cgst_sgst' : IDL.Null,
+});
+export const InvoiceItem = IDL.Record({
+  'qty' : IDL.Nat,
+  'cgst' : Money,
+  'igst' : Money,
+  'rate' : Money,
+  'sgst' : Money,
+  'gstPercent' : GSTPercent,
+  'hsnCode' : HSNCode,
+  'productId' : ProductId,
+  'productName' : IDL.Text,
+  'amount' : Money,
+});
+export const TaxMode = IDL.Variant({
+  'inclusive' : IDL.Null,
+  'exclusive' : IDL.Null,
+});
+export const SalesInvoice = IDL.Record({
+  'id' : InvoiceId,
+  'customerName' : IDL.Text,
+  'owner' : IDL.Principal,
+  'date' : Time,
+  'createdAt' : Time,
+  'invoiceNumber' : IDL.Text,
+  'totalAmount' : Money,
+  'notes' : IDL.Text,
+  'customerId' : CustomerId,
+  'gstType' : GSTType,
+  'items' : IDL.Vec(InvoiceItem),
+  'taxAmount' : Money,
+  'taxMode' : TaxMode,
+  'subtotal' : Money,
+});
+export const Vendor = IDL.Record({
+  'id' : VendorId,
+  'owner' : IDL.Principal,
+  'gstNumber' : IDL.Text,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'address' : IDL.Text,
+  'phone' : IDL.Text,
+});
+export const PaymentId = IDL.Text;
+export const VendorPayment = IDL.Record({
+  'id' : PaymentId,
+  'owner' : IDL.Principal,
+  'date' : Time,
+  'createdAt' : Time,
+  'vendorId' : VendorId,
+  'notes' : IDL.Text,
+  'amount' : Money,
+  'vendorName' : IDL.Text,
+});
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const DashboardStats = IDL.Record({
+  'totalExpenses' : Money,
+  'totalSales' : Money,
+  'totalPurchases' : Money,
+  'profitEstimate' : Money,
+  'lowStockItems' : IDL.Vec(Product),
+});
+export const PurchaseSummary = IDL.Record({
+  'date' : Time,
+  'totalAmount' : Money,
+  'billNumber' : IDL.Text,
+  'vendorName' : IDL.Text,
+});
+export const GSTR1Sale = IDL.Record({
+  'customerName' : IDL.Text,
+  'date' : Time,
+  'invoiceNumber' : IDL.Text,
+  'totalAmount' : Money,
+  'taxAmount' : Money,
+  'subtotal' : Money,
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -55,8 +192,47 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'createCustomer' : IDL.Func([Customer], [], []),
+  'createExpense' : IDL.Func([Expense], [], []),
+  'createProduct' : IDL.Func([Product], [], []),
+  'createPurchaseBill' : IDL.Func([PurchaseBill], [], []),
+  'createSalesInvoice' : IDL.Func([SalesInvoice], [], []),
+  'createVendor' : IDL.Func([Vendor], [], []),
+  'createVendorPayment' : IDL.Func([VendorPayment], [], []),
+  'deleteCustomer' : IDL.Func([CustomerId], [], []),
+  'deleteExpense' : IDL.Func([ExpenseId], [], []),
+  'deleteProduct' : IDL.Func([ProductId], [], []),
+  'deletePurchaseBill' : IDL.Func([BillId], [], []),
+  'deleteSalesInvoice' : IDL.Func([InvoiceId], [], []),
+  'deleteVendor' : IDL.Func([VendorId], [], []),
+  'deleteVendorPayment' : IDL.Func([PaymentId], [], []),
+  'getAllCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+  'getAllExpenses' : IDL.Func([], [IDL.Vec(Expense)], ['query']),
+  'getAllProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
+  'getAllPurchaseBills' : IDL.Func([], [IDL.Vec(PurchaseBill)], ['query']),
+  'getAllSalesInvoices' : IDL.Func([], [IDL.Vec(SalesInvoice)], ['query']),
+  'getAllVendorPayments' : IDL.Func([], [IDL.Vec(VendorPayment)], ['query']),
+  'getAllVendors' : IDL.Func([], [IDL.Vec(Vendor)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getDashboardStats' : IDL.Func([], [DashboardStats], ['query']),
+  'getProductById' : IDL.Func([ProductId], [IDL.Opt(Product)], ['query']),
+  'getPurchaseBillById' : IDL.Func(
+      [BillId],
+      [IDL.Opt(PurchaseBill)],
+      ['query'],
+    ),
+  'getPurchaseSummary' : IDL.Func(
+      [Time, Time],
+      [IDL.Vec(PurchaseSummary)],
+      ['query'],
+    ),
+  'getSalesForGSTR1' : IDL.Func([Time, Time], [IDL.Vec(GSTR1Sale)], ['query']),
+  'getSalesInvoiceById' : IDL.Func(
+      [InvoiceId],
+      [IDL.Opt(SalesInvoice)],
+      ['query'],
+    ),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -64,6 +240,9 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateCustomer' : IDL.Func([CustomerId, Customer], [], []),
+  'updateProduct' : IDL.Func([ProductId, Product], [], []),
+  'updateVendor' : IDL.Func([VendorId, Vendor], [], []),
 });
 
 export const idlInitArgs = [];
@@ -85,7 +264,141 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const CustomerId = IDL.Text;
+  const Time = IDL.Int;
+  const Customer = IDL.Record({
+    'id' : CustomerId,
+    'owner' : IDL.Principal,
+    'gstNumber' : IDL.Text,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'address' : IDL.Text,
+    'phone' : IDL.Text,
+  });
+  const ExpenseId = IDL.Text;
+  const Money = IDL.Nat;
+  const Expense = IDL.Record({
+    'id' : ExpenseId,
+    'owner' : IDL.Principal,
+    'date' : Time,
+    'createdAt' : Time,
+    'description' : IDL.Text,
+    'category' : IDL.Text,
+    'amount' : Money,
+  });
+  const ProductId = IDL.Text;
+  const GSTPercent = IDL.Nat;
+  const HSNCode = IDL.Text;
+  const Product = IDL.Record({
+    'id' : ProductId,
+    'sku' : IDL.Text,
+    'stockQty' : IDL.Nat,
+    'owner' : IDL.Principal,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'gstPercent' : GSTPercent,
+    'sellingPrice' : Money,
+    'hsnCode' : HSNCode,
+    'updatedAt' : Time,
+    'category' : IDL.Text,
+    'costPrice' : Money,
+  });
+  const BillId = IDL.Text;
+  const VendorId = IDL.Text;
+  const PurchaseItem = IDL.Record({
+    'qty' : IDL.Nat,
+    'productId' : ProductId,
+    'productName' : IDL.Text,
+    'costPrice' : Money,
+    'amount' : Money,
+  });
+  const PurchaseBill = IDL.Record({
+    'id' : BillId,
+    'owner' : IDL.Principal,
+    'date' : Time,
+    'createdAt' : Time,
+    'totalAmount' : Money,
+    'vendorId' : VendorId,
+    'billNumber' : IDL.Text,
+    'items' : IDL.Vec(PurchaseItem),
+    'vendorName' : IDL.Text,
+  });
+  const InvoiceId = IDL.Text;
+  const GSTType = IDL.Variant({ 'igst' : IDL.Null, 'cgst_sgst' : IDL.Null });
+  const InvoiceItem = IDL.Record({
+    'qty' : IDL.Nat,
+    'cgst' : Money,
+    'igst' : Money,
+    'rate' : Money,
+    'sgst' : Money,
+    'gstPercent' : GSTPercent,
+    'hsnCode' : HSNCode,
+    'productId' : ProductId,
+    'productName' : IDL.Text,
+    'amount' : Money,
+  });
+  const TaxMode = IDL.Variant({
+    'inclusive' : IDL.Null,
+    'exclusive' : IDL.Null,
+  });
+  const SalesInvoice = IDL.Record({
+    'id' : InvoiceId,
+    'customerName' : IDL.Text,
+    'owner' : IDL.Principal,
+    'date' : Time,
+    'createdAt' : Time,
+    'invoiceNumber' : IDL.Text,
+    'totalAmount' : Money,
+    'notes' : IDL.Text,
+    'customerId' : CustomerId,
+    'gstType' : GSTType,
+    'items' : IDL.Vec(InvoiceItem),
+    'taxAmount' : Money,
+    'taxMode' : TaxMode,
+    'subtotal' : Money,
+  });
+  const Vendor = IDL.Record({
+    'id' : VendorId,
+    'owner' : IDL.Principal,
+    'gstNumber' : IDL.Text,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'address' : IDL.Text,
+    'phone' : IDL.Text,
+  });
+  const PaymentId = IDL.Text;
+  const VendorPayment = IDL.Record({
+    'id' : PaymentId,
+    'owner' : IDL.Principal,
+    'date' : Time,
+    'createdAt' : Time,
+    'vendorId' : VendorId,
+    'notes' : IDL.Text,
+    'amount' : Money,
+    'vendorName' : IDL.Text,
+  });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const DashboardStats = IDL.Record({
+    'totalExpenses' : Money,
+    'totalSales' : Money,
+    'totalPurchases' : Money,
+    'profitEstimate' : Money,
+    'lowStockItems' : IDL.Vec(Product),
+  });
+  const PurchaseSummary = IDL.Record({
+    'date' : Time,
+    'totalAmount' : Money,
+    'billNumber' : IDL.Text,
+    'vendorName' : IDL.Text,
+  });
+  const GSTR1Sale = IDL.Record({
+    'customerName' : IDL.Text,
+    'date' : Time,
+    'invoiceNumber' : IDL.Text,
+    'totalAmount' : Money,
+    'taxAmount' : Money,
+    'subtotal' : Money,
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -116,8 +429,51 @@ export const idlFactory = ({ IDL }) => {
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'createCustomer' : IDL.Func([Customer], [], []),
+    'createExpense' : IDL.Func([Expense], [], []),
+    'createProduct' : IDL.Func([Product], [], []),
+    'createPurchaseBill' : IDL.Func([PurchaseBill], [], []),
+    'createSalesInvoice' : IDL.Func([SalesInvoice], [], []),
+    'createVendor' : IDL.Func([Vendor], [], []),
+    'createVendorPayment' : IDL.Func([VendorPayment], [], []),
+    'deleteCustomer' : IDL.Func([CustomerId], [], []),
+    'deleteExpense' : IDL.Func([ExpenseId], [], []),
+    'deleteProduct' : IDL.Func([ProductId], [], []),
+    'deletePurchaseBill' : IDL.Func([BillId], [], []),
+    'deleteSalesInvoice' : IDL.Func([InvoiceId], [], []),
+    'deleteVendor' : IDL.Func([VendorId], [], []),
+    'deleteVendorPayment' : IDL.Func([PaymentId], [], []),
+    'getAllCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+    'getAllExpenses' : IDL.Func([], [IDL.Vec(Expense)], ['query']),
+    'getAllProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
+    'getAllPurchaseBills' : IDL.Func([], [IDL.Vec(PurchaseBill)], ['query']),
+    'getAllSalesInvoices' : IDL.Func([], [IDL.Vec(SalesInvoice)], ['query']),
+    'getAllVendorPayments' : IDL.Func([], [IDL.Vec(VendorPayment)], ['query']),
+    'getAllVendors' : IDL.Func([], [IDL.Vec(Vendor)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getDashboardStats' : IDL.Func([], [DashboardStats], ['query']),
+    'getProductById' : IDL.Func([ProductId], [IDL.Opt(Product)], ['query']),
+    'getPurchaseBillById' : IDL.Func(
+        [BillId],
+        [IDL.Opt(PurchaseBill)],
+        ['query'],
+      ),
+    'getPurchaseSummary' : IDL.Func(
+        [Time, Time],
+        [IDL.Vec(PurchaseSummary)],
+        ['query'],
+      ),
+    'getSalesForGSTR1' : IDL.Func(
+        [Time, Time],
+        [IDL.Vec(GSTR1Sale)],
+        ['query'],
+      ),
+    'getSalesInvoiceById' : IDL.Func(
+        [InvoiceId],
+        [IDL.Opt(SalesInvoice)],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -125,6 +481,9 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateCustomer' : IDL.Func([CustomerId, Customer], [], []),
+    'updateProduct' : IDL.Func([ProductId, Product], [], []),
+    'updateVendor' : IDL.Func([VendorId, Vendor], [], []),
   });
 };
 

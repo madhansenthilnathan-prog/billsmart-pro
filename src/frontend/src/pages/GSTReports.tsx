@@ -1,425 +1,358 @@
-import { Download } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
-import { formatDate, formatINR } from "../lib/formatters";
-import { sampleInvoices } from "../lib/sampleData";
+import { useActor } from "../hooks/useActor";
+
+const toRupees = (p: bigint) => (Number(p) / 100).toFixed(2);
+const formatDate = (ns: bigint) =>
+  new Date(Number(ns / 1_000_000n)).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+const firstOfMonth = () => {
+  const d = new Date();
+  d.setDate(1);
+  return d.toISOString().slice(0, 10);
+};
+const today = () => new Date().toISOString().slice(0, 10);
 
 export default function GSTReports() {
-  const [fromDate, setFromDate] = useState("2024-01-01");
-  const [toDate, setToDate] = useState("2024-01-31");
+  const { actor } = useActor();
   const [tab, setTab] = useState<"gstr1" | "gstr3b">("gstr1");
+  const [startDate, setStartDate] = useState(firstOfMonth());
+  const [endDate, setEndDate] = useState(today());
 
-  const filtered = sampleInvoices.filter(
-    (inv) => inv.date >= fromDate && inv.date <= toDate,
-  );
-  const totalTaxable = filtered.reduce((s, i) => s + i.subtotal, 0);
-  const totalCGST = filtered.reduce((s, i) => s + i.cgst, 0);
-  const totalSGST = filtered.reduce((s, i) => s + i.sgst, 0);
-  const totalIGST = filtered.reduce((s, i) => s + i.igst, 0);
-  const totalTax = totalCGST + totalSGST + totalIGST;
-  const totalInvoiceValue = filtered.reduce((s, i) => s + i.total, 0);
+  const startNs = BigInt(new Date(startDate).getTime()) * 1_000_000n;
+  const endNs = BigInt(new Date(`${endDate}T23:59:59`).getTime()) * 1_000_000n;
 
-  const exportCSV = () => {
-    const headers = [
-      "Invoice #",
-      "Date",
-      "Customer",
-      "Taxable",
-      "CGST",
-      "SGST",
-      "IGST",
-      "Total",
-    ];
-    const rows = filtered.map((inv) => [
-      inv.invoiceNo,
-      inv.date,
-      inv.customerName,
-      inv.subtotal,
-      inv.cgst,
-      inv.sgst,
-      inv.igst,
-      inv.total,
-    ]);
-    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "gst-report.csv";
-    a.click();
-    toast.success("Exported!");
+  const { data: gstr1 = [], isLoading: loadingGstr1 } = useQuery({
+    queryKey: ["gstr1", startDate, endDate],
+    queryFn: () => actor!.getSalesForGSTR1(startNs, endNs),
+    enabled: !!actor,
+  });
+
+  const { data: purchaseSummary = [], isLoading: loadingPurchase } = useQuery({
+    queryKey: ["purchaseSummary", startDate, endDate],
+    queryFn: () => actor!.getPurchaseSummary(startNs, endNs),
+    enabled: !!actor,
+  });
+
+  const totalSales = gstr1.reduce((s, r) => s + Number(r.totalAmount), 0) / 100;
+  const totalTax = gstr1.reduce((s, r) => s + Number(r.taxAmount), 0) / 100;
+  const totalPurchase =
+    purchaseSummary.reduce((s, r) => s + Number(r.totalAmount), 0) / 100;
+
+  const inputStyle = {
+    background: "oklch(0.15 0.02 230)",
+    border: "1px solid oklch(0.26 0.025 230)",
+    color: "oklch(0.93 0.015 230)",
+    borderRadius: 8,
+    padding: "8px 12px",
+    fontSize: 14,
+    outline: "none",
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1
-          className="text-2xl font-bold"
-          style={{ color: "oklch(0.93 0.015 230)" }}
-        >
-          GST Reports
-        </h1>
-        <button
-          type="button"
-          onClick={exportCSV}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
-          style={{
-            background: "oklch(0.22 0.025 230)",
-            border: "1px solid oklch(0.26 0.025 230)",
-            color: "oklch(0.93 0.015 230)",
-          }}
-        >
-          <Download size={14} /> Export CSV
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-4 mb-6">
-        <div>
-          <p
-            className="text-xs font-medium block mb-1"
-            style={{ color: "oklch(0.67 0.02 230)" }}
-          >
-            From
-          </p>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm"
-            style={{
-              background: "oklch(0.19 0.025 230)",
-              border: "1px solid oklch(0.26 0.025 230)",
-              color: "oklch(0.93 0.015 230)",
-            }}
-          />
-        </div>
-        <div>
-          <p
-            className="text-xs font-medium block mb-1"
-            style={{ color: "oklch(0.67 0.02 230)" }}
-          >
-            To
-          </p>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm"
-            style={{
-              background: "oklch(0.19 0.025 230)",
-              border: "1px solid oklch(0.26 0.025 230)",
-              color: "oklch(0.93 0.015 230)",
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        {[
-          {
-            label: "Taxable Value",
-            value: formatINR(totalTaxable),
-            color: "oklch(0.58 0.18 255)",
-          },
-          {
-            label: "CGST + SGST",
-            value: formatINR(totalCGST + totalSGST),
-            color: "oklch(0.79 0.13 185)",
-          },
-          {
-            label: "IGST",
-            value: formatINR(totalIGST),
-            color: "oklch(0.75 0.15 70)",
-          },
-          {
-            label: "Total Tax",
-            value: formatINR(totalTax),
-            color: "oklch(0.73 0.15 160)",
-          },
-        ].map(({ label, value, color }) => (
-          <div
-            key={label}
-            className="rounded-xl p-4"
-            style={{
-              background: "oklch(0.19 0.025 230)",
-              border: "1px solid oklch(0.26 0.025 230)",
-            }}
-          >
-            <div
-              className="text-xs font-medium mb-1"
-              style={{ color: "oklch(0.67 0.02 230)" }}
-            >
-              {label}
-            </div>
-            <div className="text-xl font-bold" style={{ color }}>
-              {value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div
-        className="flex gap-1 mb-4 p-1 rounded-lg w-fit"
-        style={{ background: "oklch(0.19 0.025 230)" }}
+    <div className="p-8">
+      <h1
+        className="text-2xl font-bold mb-1"
+        style={{ color: "oklch(0.93 0.015 230)" }}
       >
+        GST Reports
+      </h1>
+      <p className="text-sm mb-5" style={{ color: "oklch(0.67 0.02 230)" }}>
+        GSTR-1 and GSTR-3B summary
+      </p>
+
+      <div className="flex items-center gap-4 mb-5 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-xs" style={{ color: "oklch(0.67 0.02 230)" }}>
+            From
+          </span>
+          <input
+            type="date"
+            style={inputStyle}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs" style={{ color: "oklch(0.67 0.02 230)" }}>
+            To
+          </span>
+          <input
+            type="date"
+            style={inputStyle}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-2 mb-5">
         {(["gstr1", "gstr3b"] as const).map((t) => (
           <button
-            type="button"
             key={t}
+            type="button"
             onClick={() => setTab(t)}
-            className="px-4 py-2 rounded text-sm font-medium"
+            className="px-4 py-1.5 rounded-lg text-sm font-medium"
             style={{
-              background: tab === t ? "oklch(0.79 0.13 185)" : "transparent",
+              background:
+                tab === t ? "oklch(0.79 0.13 185)" : "oklch(0.24 0.025 230)",
               color:
-                tab === t ? "oklch(0.13 0.02 230)" : "oklch(0.67 0.02 230)",
+                tab === t ? "oklch(0.13 0.02 230)" : "oklch(0.87 0.015 230)",
             }}
           >
-            {t === "gstr1" ? "GSTR-1 (Outward)" : "GSTR-3B (Summary)"}
+            {t === "gstr1" ? "GSTR-1 (Sales)" : "GSTR-3B (Summary)"}
           </button>
         ))}
       </div>
 
-      {tab === "gstr1" && (
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid oklch(0.26 0.025 230)" }}
-        >
-          <table className="w-full">
-            <thead style={{ background: "oklch(0.19 0.025 230)" }}>
-              <tr>
-                {[
-                  "Invoice #",
-                  "Date",
-                  "Customer",
-                  "GSTIN",
-                  "Taxable",
-                  "CGST",
-                  "SGST",
-                  "IGST",
-                  "Total",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left px-4 py-3 text-xs font-medium"
-                    style={{ color: "oklch(0.67 0.02 230)" }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((inv) => (
-                <tr
-                  key={inv.id}
-                  className="border-t"
-                  style={{ borderColor: "oklch(0.22 0.025 230)" }}
-                >
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: "oklch(0.58 0.18 255)" }}
-                  >
-                    {inv.invoiceNo}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: "oklch(0.67 0.02 230)" }}
-                  >
-                    {formatDate(inv.date)}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: "oklch(0.93 0.015 230)" }}
-                  >
-                    {inv.customerName}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: "oklch(0.67 0.02 230)" }}
-                  >
-                    -
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: "oklch(0.93 0.015 230)" }}
-                  >
-                    {formatINR(inv.subtotal)}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: "oklch(0.79 0.13 185)" }}
-                  >
-                    {formatINR(inv.cgst)}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: "oklch(0.79 0.13 185)" }}
-                  >
-                    {formatINR(inv.sgst)}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: "oklch(0.75 0.15 70)" }}
-                  >
-                    {formatINR(inv.igst)}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm font-bold"
-                    style={{ color: "oklch(0.93 0.015 230)" }}
-                  >
-                    {formatINR(inv.total)}
-                  </td>
-                </tr>
-              ))}
-              <tr
+      {tab === "gstr1" ? (
+        <>
+          <div className="grid grid-cols-3 gap-4 mb-5">
+            {[
+              { label: "Total Sales", value: `₹${totalSales.toFixed(2)}` },
+              {
+                label: "Total Tax Collected",
+                value: `₹${totalTax.toFixed(2)}`,
+              },
+              { label: "Invoices", value: gstr1.length },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="rounded-xl p-4"
                 style={{
-                  background: "oklch(0.22 0.025 230)",
-                  borderTop: "2px solid oklch(0.26 0.025 230)",
+                  background: "oklch(0.19 0.025 230)",
+                  border: "1px solid oklch(0.24 0.025 230)",
                 }}
               >
-                <td
-                  colSpan={4}
-                  className="px-4 py-3 text-sm font-bold"
+                <p
+                  className="text-xs mb-1"
+                  style={{ color: "oklch(0.67 0.02 230)" }}
+                >
+                  {label}
+                </p>
+                <p
+                  className="text-lg font-bold"
                   style={{ color: "oklch(0.93 0.015 230)" }}
                 >
-                  TOTAL
-                </td>
-                <td
-                  className="px-4 py-3 text-sm font-bold"
-                  style={{ color: "oklch(0.93 0.015 230)" }}
-                >
-                  {formatINR(totalTaxable)}
-                </td>
-                <td
-                  className="px-4 py-3 text-sm font-bold"
-                  style={{ color: "oklch(0.79 0.13 185)" }}
-                >
-                  {formatINR(totalCGST)}
-                </td>
-                <td
-                  className="px-4 py-3 text-sm font-bold"
-                  style={{ color: "oklch(0.79 0.13 185)" }}
-                >
-                  {formatINR(totalSGST)}
-                </td>
-                <td
-                  className="px-4 py-3 text-sm font-bold"
-                  style={{ color: "oklch(0.75 0.15 70)" }}
-                >
-                  {formatINR(totalIGST)}
-                </td>
-                <td
-                  className="px-4 py-3 text-sm font-bold"
-                  style={{ color: "oklch(0.93 0.015 230)" }}
-                >
-                  {formatINR(totalInvoiceValue)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {tab === "gstr3b" && (
-        <div
-          className="rounded-xl p-6"
-          style={{
-            background: "oklch(0.19 0.025 230)",
-            border: "1px solid oklch(0.26 0.025 230)",
-          }}
-        >
-          <h3
-            className="font-semibold mb-4"
-            style={{ color: "oklch(0.93 0.015 230)" }}
-          >
-            GSTR-3B Summary
-          </h3>
-          <div className="space-y-3">
-            {[
-              {
-                label: "3.1 Outward taxable supplies",
-                taxable: totalTaxable,
-                igst: totalIGST,
-                cgst: totalCGST,
-                sgst: totalSGST,
-              },
-            ].map((row) => (
-              <div
-                key={row.label}
-                className="rounded-lg p-4"
-                style={{ background: "oklch(0.22 0.025 230)" }}
-              >
-                <div
-                  className="text-sm font-medium mb-3"
-                  style={{ color: "oklch(0.93 0.015 230)" }}
-                >
-                  {row.label}
-                </div>
-                <div className="grid grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <div style={{ color: "oklch(0.67 0.02 230)" }}>
-                      Taxable Value
-                    </div>
-                    <div
-                      className="font-bold"
-                      style={{ color: "oklch(0.93 0.015 230)" }}
-                    >
-                      {formatINR(row.taxable)}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ color: "oklch(0.67 0.02 230)" }}>IGST</div>
-                    <div
-                      className="font-bold"
-                      style={{ color: "oklch(0.75 0.15 70)" }}
-                    >
-                      {formatINR(row.igst)}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ color: "oklch(0.67 0.02 230)" }}>CGST</div>
-                    <div
-                      className="font-bold"
-                      style={{ color: "oklch(0.79 0.13 185)" }}
-                    >
-                      {formatINR(row.cgst)}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ color: "oklch(0.67 0.02 230)" }}>
-                      SGST/UTGST
-                    </div>
-                    <div
-                      className="font-bold"
-                      style={{ color: "oklch(0.79 0.13 185)" }}
-                    >
-                      {formatINR(row.sgst)}
-                    </div>
-                  </div>
-                </div>
+                  {value}
+                </p>
               </div>
             ))}
-            <div
-              className="rounded-lg p-4"
-              style={{ background: "oklch(0.22 0.025 230)" }}
-            >
-              <div
-                className="text-sm font-medium mb-2"
-                style={{ color: "oklch(0.93 0.015 230)" }}
-              >
-                Total Tax Liability
-              </div>
-              <div
-                className="text-2xl font-bold"
-                style={{ color: "oklch(0.73 0.15 160)" }}
-              >
-                {formatINR(totalTax)}
-              </div>
-            </div>
           </div>
-        </div>
+          {loadingGstr1 ? (
+            <div
+              className="h-32 rounded-xl animate-pulse"
+              style={{ background: "oklch(0.19 0.025 230)" }}
+            />
+          ) : gstr1.length === 0 ? (
+            <div
+              className="rounded-xl p-12 text-center"
+              style={{
+                background: "oklch(0.19 0.025 230)",
+                border: "1px solid oklch(0.24 0.025 230)",
+              }}
+            >
+              <p className="text-sm" style={{ color: "oklch(0.67 0.02 230)" }}>
+                No sales in this period.
+              </p>
+            </div>
+          ) : (
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ border: "1px solid oklch(0.24 0.025 230)" }}
+            >
+              <table className="w-full text-sm">
+                <thead style={{ background: "oklch(0.16 0.025 230)" }}>
+                  <tr>
+                    {[
+                      "Invoice No",
+                      "Customer",
+                      "Date",
+                      "Taxable",
+                      "Tax",
+                      "Total",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left font-medium"
+                        style={{ color: "oklch(0.67 0.02 230)" }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {gstr1.map((r) => (
+                    <tr
+                      key={r.invoiceNumber}
+                      style={{
+                        background:
+                          gstr1.indexOf(r) % 2 === 0
+                            ? "oklch(0.19 0.025 230)"
+                            : "oklch(0.17 0.02 230)",
+                        borderTop: "1px solid oklch(0.22 0.025 230)",
+                      }}
+                    >
+                      <td
+                        className="px-4 py-3 font-mono text-xs"
+                        style={{ color: "oklch(0.79 0.13 185)" }}
+                      >
+                        {r.invoiceNumber}
+                      </td>
+                      <td
+                        className="px-4 py-3"
+                        style={{ color: "oklch(0.87 0.015 230)" }}
+                      >
+                        {r.customerName}
+                      </td>
+                      <td
+                        className="px-4 py-3"
+                        style={{ color: "oklch(0.67 0.02 230)" }}
+                      >
+                        {formatDate(r.date)}
+                      </td>
+                      <td
+                        className="px-4 py-3"
+                        style={{ color: "oklch(0.87 0.015 230)" }}
+                      >
+                        ₹{toRupees(r.subtotal)}
+                      </td>
+                      <td
+                        className="px-4 py-3"
+                        style={{ color: "oklch(0.87 0.015 230)" }}
+                      >
+                        ₹{toRupees(r.taxAmount)}
+                      </td>
+                      <td
+                        className="px-4 py-3 font-semibold"
+                        style={{ color: "oklch(0.73 0.15 160)" }}
+                      >
+                        ₹{toRupees(r.totalAmount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            {[
+              {
+                label: "Total Purchases (ITC)",
+                value: `₹${totalPurchase.toFixed(2)}`,
+              },
+              { label: "Bills", value: purchaseSummary.length },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="rounded-xl p-4"
+                style={{
+                  background: "oklch(0.19 0.025 230)",
+                  border: "1px solid oklch(0.24 0.025 230)",
+                }}
+              >
+                <p
+                  className="text-xs mb-1"
+                  style={{ color: "oklch(0.67 0.02 230)" }}
+                >
+                  {label}
+                </p>
+                <p
+                  className="text-lg font-bold"
+                  style={{ color: "oklch(0.93 0.015 230)" }}
+                >
+                  {value}
+                </p>
+              </div>
+            ))}
+          </div>
+          {loadingPurchase ? (
+            <div
+              className="h-32 rounded-xl animate-pulse"
+              style={{ background: "oklch(0.19 0.025 230)" }}
+            />
+          ) : purchaseSummary.length === 0 ? (
+            <div
+              className="rounded-xl p-12 text-center"
+              style={{
+                background: "oklch(0.19 0.025 230)",
+                border: "1px solid oklch(0.24 0.025 230)",
+              }}
+            >
+              <p className="text-sm" style={{ color: "oklch(0.67 0.02 230)" }}>
+                No purchases in this period.
+              </p>
+            </div>
+          ) : (
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ border: "1px solid oklch(0.24 0.025 230)" }}
+            >
+              <table className="w-full text-sm">
+                <thead style={{ background: "oklch(0.16 0.025 230)" }}>
+                  <tr>
+                    {["Bill No", "Vendor", "Date", "Amount"].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left font-medium"
+                        style={{ color: "oklch(0.67 0.02 230)" }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchaseSummary.map((r) => (
+                    <tr
+                      key={r.billNumber}
+                      style={{
+                        background:
+                          purchaseSummary.indexOf(r) % 2 === 0
+                            ? "oklch(0.19 0.025 230)"
+                            : "oklch(0.17 0.02 230)",
+                        borderTop: "1px solid oklch(0.22 0.025 230)",
+                      }}
+                    >
+                      <td
+                        className="px-4 py-3 font-mono text-xs"
+                        style={{ color: "oklch(0.79 0.13 185)" }}
+                      >
+                        {r.billNumber}
+                      </td>
+                      <td
+                        className="px-4 py-3"
+                        style={{ color: "oklch(0.87 0.015 230)" }}
+                      >
+                        {r.vendorName}
+                      </td>
+                      <td
+                        className="px-4 py-3"
+                        style={{ color: "oklch(0.67 0.02 230)" }}
+                      >
+                        {formatDate(r.date)}
+                      </td>
+                      <td
+                        className="px-4 py-3 font-semibold"
+                        style={{ color: "oklch(0.87 0.015 230)" }}
+                      >
+                        ₹{toRupees(r.totalAmount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

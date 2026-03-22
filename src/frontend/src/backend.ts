@@ -89,19 +89,156 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface UserProfile {
-    name: string;
-}
-export interface _CaffeineStorageCreateCertificateResult {
-    method: string;
-    blob_hash: string;
-}
+export type VendorId = string;
 export interface _CaffeineStorageRefillResult {
     success?: boolean;
     topped_up_amount?: bigint;
 }
+export type Time = bigint;
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
+}
+export type BillId = string;
+export interface _CaffeineStorageCreateCertificateResult {
+    method: string;
+    blob_hash: string;
+}
+export interface SalesInvoice {
+    id: InvoiceId;
+    customerName: string;
+    owner: Principal;
+    date: Time;
+    createdAt: Time;
+    invoiceNumber: string;
+    totalAmount: Money;
+    notes: string;
+    customerId: CustomerId;
+    gstType: GSTType;
+    items: Array<InvoiceItem>;
+    taxAmount: Money;
+    taxMode: TaxMode;
+    subtotal: Money;
+}
+export type HSNCode = string;
+export interface PurchaseBill {
+    id: BillId;
+    owner: Principal;
+    date: Time;
+    createdAt: Time;
+    totalAmount: Money;
+    vendorId: VendorId;
+    billNumber: string;
+    items: Array<PurchaseItem>;
+    vendorName: string;
+}
+export interface Vendor {
+    id: VendorId;
+    owner: Principal;
+    gstNumber: string;
+    name: string;
+    createdAt: Time;
+    address: string;
+    phone: string;
+}
+export type GSTPercent = bigint;
+export interface PurchaseItem {
+    qty: bigint;
+    productId: ProductId;
+    productName: string;
+    costPrice: Money;
+    amount: Money;
+}
+export type Money = bigint;
+export interface InvoiceItem {
+    qty: bigint;
+    cgst: Money;
+    igst: Money;
+    rate: Money;
+    sgst: Money;
+    gstPercent: GSTPercent;
+    hsnCode: HSNCode;
+    productId: ProductId;
+    productName: string;
+    amount: Money;
+}
+export interface Expense {
+    id: ExpenseId;
+    owner: Principal;
+    date: Time;
+    createdAt: Time;
+    description: string;
+    category: string;
+    amount: Money;
+}
+export interface DashboardStats {
+    totalExpenses: Money;
+    totalSales: Money;
+    totalPurchases: Money;
+    profitEstimate: Money;
+    lowStockItems: Array<Product>;
+}
+export interface Customer {
+    id: CustomerId;
+    owner: Principal;
+    gstNumber: string;
+    name: string;
+    createdAt: Time;
+    address: string;
+    phone: string;
+}
+export interface GSTR1Sale {
+    customerName: string;
+    date: Time;
+    invoiceNumber: string;
+    totalAmount: Money;
+    taxAmount: Money;
+    subtotal: Money;
+}
+export type CustomerId = string;
+export type PaymentId = string;
+export type ExpenseId = string;
+export type InvoiceId = string;
+export interface VendorPayment {
+    id: PaymentId;
+    owner: Principal;
+    date: Time;
+    createdAt: Time;
+    vendorId: VendorId;
+    notes: string;
+    amount: Money;
+    vendorName: string;
+}
+export type ProductId = string;
+export interface PurchaseSummary {
+    date: Time;
+    totalAmount: Money;
+    billNumber: string;
+    vendorName: string;
+}
+export interface UserProfile {
+    name: string;
+}
+export interface Product {
+    id: ProductId;
+    sku: string;
+    stockQty: bigint;
+    owner: Principal;
+    name: string;
+    createdAt: Time;
+    gstPercent: GSTPercent;
+    sellingPrice: Money;
+    hsnCode: HSNCode;
+    updatedAt: Time;
+    category: string;
+    costPrice: Money;
+}
+export enum GSTType {
+    igst = "igst",
+    cgst_sgst = "cgst_sgst"
+}
+export enum TaxMode {
+    inclusive = "inclusive",
+    exclusive = "exclusive"
 }
 export enum UserRole {
     admin = "admin",
@@ -117,13 +254,43 @@ export interface backendInterface {
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    createCustomer(customer: Customer): Promise<void>;
+    createExpense(expense: Expense): Promise<void>;
+    createProduct(product: Product): Promise<void>;
+    createPurchaseBill(bill: PurchaseBill): Promise<void>;
+    createSalesInvoice(invoice: SalesInvoice): Promise<void>;
+    createVendor(vendor: Vendor): Promise<void>;
+    createVendorPayment(payment: VendorPayment): Promise<void>;
+    deleteCustomer(customerId: CustomerId): Promise<void>;
+    deleteExpense(expenseId: ExpenseId): Promise<void>;
+    deleteProduct(productId: ProductId): Promise<void>;
+    deletePurchaseBill(billId: BillId): Promise<void>;
+    deleteSalesInvoice(invoiceId: InvoiceId): Promise<void>;
+    deleteVendor(vendorId: VendorId): Promise<void>;
+    deleteVendorPayment(paymentId: PaymentId): Promise<void>;
+    getAllCustomers(): Promise<Array<Customer>>;
+    getAllExpenses(): Promise<Array<Expense>>;
+    getAllProducts(): Promise<Array<Product>>;
+    getAllPurchaseBills(): Promise<Array<PurchaseBill>>;
+    getAllSalesInvoices(): Promise<Array<SalesInvoice>>;
+    getAllVendorPayments(): Promise<Array<VendorPayment>>;
+    getAllVendors(): Promise<Array<Vendor>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getDashboardStats(): Promise<DashboardStats>;
+    getProductById(productId: ProductId): Promise<Product | null>;
+    getPurchaseBillById(billId: BillId): Promise<PurchaseBill | null>;
+    getPurchaseSummary(startDate: Time, endDate: Time): Promise<Array<PurchaseSummary>>;
+    getSalesForGSTR1(startDate: Time, endDate: Time): Promise<Array<GSTR1Sale>>;
+    getSalesInvoiceById(invoiceId: InvoiceId): Promise<SalesInvoice | null>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateCustomer(customerId: CustomerId, updated: Customer): Promise<void>;
+    updateProduct(productId: ProductId, updated: Product): Promise<void>;
+    updateVendor(vendorId: VendorId, updated: Vendor): Promise<void>;
 }
-import type { UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
+import type { CustomerId as _CustomerId, GSTType as _GSTType, InvoiceId as _InvoiceId, InvoiceItem as _InvoiceItem, Money as _Money, Product as _Product, PurchaseBill as _PurchaseBill, SalesInvoice as _SalesInvoice, TaxMode as _TaxMode, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _caffeineStorageBlobIsLive(arg0: Uint8Array): Promise<boolean> {
@@ -238,46 +405,424 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async createCustomer(arg0: Customer): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createCustomer(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createCustomer(arg0);
+            return result;
+        }
+    }
+    async createExpense(arg0: Expense): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createExpense(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createExpense(arg0);
+            return result;
+        }
+    }
+    async createProduct(arg0: Product): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createProduct(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createProduct(arg0);
+            return result;
+        }
+    }
+    async createPurchaseBill(arg0: PurchaseBill): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createPurchaseBill(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createPurchaseBill(arg0);
+            return result;
+        }
+    }
+    async createSalesInvoice(arg0: SalesInvoice): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createSalesInvoice(to_candid_SalesInvoice_n10(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createSalesInvoice(to_candid_SalesInvoice_n10(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async createVendor(arg0: Vendor): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createVendor(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createVendor(arg0);
+            return result;
+        }
+    }
+    async createVendorPayment(arg0: VendorPayment): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createVendorPayment(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createVendorPayment(arg0);
+            return result;
+        }
+    }
+    async deleteCustomer(arg0: CustomerId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteCustomer(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteCustomer(arg0);
+            return result;
+        }
+    }
+    async deleteExpense(arg0: ExpenseId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteExpense(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteExpense(arg0);
+            return result;
+        }
+    }
+    async deleteProduct(arg0: ProductId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteProduct(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteProduct(arg0);
+            return result;
+        }
+    }
+    async deletePurchaseBill(arg0: BillId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deletePurchaseBill(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deletePurchaseBill(arg0);
+            return result;
+        }
+    }
+    async deleteSalesInvoice(arg0: InvoiceId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteSalesInvoice(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteSalesInvoice(arg0);
+            return result;
+        }
+    }
+    async deleteVendor(arg0: VendorId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteVendor(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteVendor(arg0);
+            return result;
+        }
+    }
+    async deleteVendorPayment(arg0: PaymentId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteVendorPayment(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteVendorPayment(arg0);
+            return result;
+        }
+    }
+    async getAllCustomers(): Promise<Array<Customer>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllCustomers();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllCustomers();
+            return result;
+        }
+    }
+    async getAllExpenses(): Promise<Array<Expense>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllExpenses();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllExpenses();
+            return result;
+        }
+    }
+    async getAllProducts(): Promise<Array<Product>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllProducts();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllProducts();
+            return result;
+        }
+    }
+    async getAllPurchaseBills(): Promise<Array<PurchaseBill>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllPurchaseBills();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllPurchaseBills();
+            return result;
+        }
+    }
+    async getAllSalesInvoices(): Promise<Array<SalesInvoice>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllSalesInvoices();
+                return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllSalesInvoices();
+            return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllVendorPayments(): Promise<Array<VendorPayment>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllVendorPayments();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllVendorPayments();
+            return result;
+        }
+    }
+    async getAllVendors(): Promise<Array<Vendor>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllVendors();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllVendors();
+            return result;
+        }
+    }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserProfile();
-                return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserProfile();
-            return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n11(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n24(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n11(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n24(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getDashboardStats(): Promise<DashboardStats> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDashboardStats();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDashboardStats();
+            return result;
+        }
+    }
+    async getProductById(arg0: ProductId): Promise<Product | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getProductById(arg0);
+                return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getProductById(arg0);
+            return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getPurchaseBillById(arg0: BillId): Promise<PurchaseBill | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPurchaseBillById(arg0);
+                return from_candid_opt_n27(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPurchaseBillById(arg0);
+            return from_candid_opt_n27(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getPurchaseSummary(arg0: Time, arg1: Time): Promise<Array<PurchaseSummary>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPurchaseSummary(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPurchaseSummary(arg0, arg1);
+            return result;
+        }
+    }
+    async getSalesForGSTR1(arg0: Time, arg1: Time): Promise<Array<GSTR1Sale>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSalesForGSTR1(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSalesForGSTR1(arg0, arg1);
+            return result;
+        }
+    }
+    async getSalesInvoiceById(arg0: InvoiceId): Promise<SalesInvoice | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSalesInvoiceById(arg0);
+                return from_candid_opt_n28(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSalesInvoiceById(arg0);
+            return from_candid_opt_n28(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserProfile(arg0);
-                return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserProfile(arg0);
-            return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -308,21 +853,129 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updateCustomer(arg0: CustomerId, arg1: Customer): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateCustomer(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateCustomer(arg0, arg1);
+            return result;
+        }
+    }
+    async updateProduct(arg0: ProductId, arg1: Product): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateProduct(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateProduct(arg0, arg1);
+            return result;
+        }
+    }
+    async updateVendor(arg0: VendorId, arg1: Vendor): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateVendor(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateVendor(arg0, arg1);
+            return result;
+        }
+    }
 }
-function from_candid_UserRole_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n12(_uploadFile, _downloadFile, value);
+function from_candid_GSTType_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _GSTType): GSTType {
+    return from_candid_variant_n20(_uploadFile, _downloadFile, value);
+}
+function from_candid_SalesInvoice_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SalesInvoice): SalesInvoice {
+    return from_candid_record_n18(_uploadFile, _downloadFile, value);
+}
+function from_candid_TaxMode_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _TaxMode): TaxMode {
+    return from_candid_variant_n22(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n25(_uploadFile, _downloadFile, value);
 }
 function from_candid__CaffeineStorageRefillResult_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: __CaffeineStorageRefillResult): _CaffeineStorageRefillResult {
     return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+function from_candid_opt_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
     return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Product]): Product | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_PurchaseBill]): PurchaseBill | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_SalesInvoice]): SalesInvoice | null {
+    return value.length === 0 ? null : from_candid_SalesInvoice_n17(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [boolean]): boolean | null {
     return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
     return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: _InvoiceId;
+    customerName: string;
+    owner: Principal;
+    date: _Time;
+    createdAt: _Time;
+    invoiceNumber: string;
+    totalAmount: _Money;
+    notes: string;
+    customerId: _CustomerId;
+    gstType: _GSTType;
+    items: Array<_InvoiceItem>;
+    taxAmount: _Money;
+    taxMode: _TaxMode;
+    subtotal: _Money;
+}): {
+    id: InvoiceId;
+    customerName: string;
+    owner: Principal;
+    date: Time;
+    createdAt: Time;
+    invoiceNumber: string;
+    totalAmount: Money;
+    notes: string;
+    customerId: CustomerId;
+    gstType: GSTType;
+    items: Array<InvoiceItem>;
+    taxAmount: Money;
+    taxMode: TaxMode;
+    subtotal: Money;
+} {
+    return {
+        id: value.id,
+        customerName: value.customerName,
+        owner: value.owner,
+        date: value.date,
+        createdAt: value.createdAt,
+        invoiceNumber: value.invoiceNumber,
+        totalAmount: value.totalAmount,
+        notes: value.notes,
+        customerId: value.customerId,
+        gstType: from_candid_GSTType_n19(_uploadFile, _downloadFile, value.gstType),
+        items: value.items,
+        taxAmount: value.taxAmount,
+        taxMode: from_candid_TaxMode_n21(_uploadFile, _downloadFile, value.taxMode),
+        subtotal: value.subtotal
+    };
 }
 function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     success: [] | [boolean];
@@ -336,7 +989,21 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
         topped_up_amount: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.topped_up_amount))
     };
 }
-function from_candid_variant_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    igst: null;
+} | {
+    cgst_sgst: null;
+}): GSTType {
+    return "igst" in value ? GSTType.igst : "cgst_sgst" in value ? GSTType.cgst_sgst : value;
+}
+function from_candid_variant_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    inclusive: null;
+} | {
+    exclusive: null;
+}): TaxMode {
+    return "inclusive" in value ? TaxMode.inclusive : "exclusive" in value ? TaxMode.exclusive : value;
+}
+function from_candid_variant_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -344,6 +1011,18 @@ function from_candid_variant_n12(_uploadFile: (file: ExternalBlob) => Promise<Ui
     guest: null;
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
+}
+function from_candid_vec_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_SalesInvoice>): Array<SalesInvoice> {
+    return value.map((x)=>from_candid_SalesInvoice_n17(_uploadFile, _downloadFile, x));
+}
+function to_candid_GSTType_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: GSTType): _GSTType {
+    return to_candid_variant_n13(_uploadFile, _downloadFile, value);
+}
+function to_candid_SalesInvoice_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: SalesInvoice): _SalesInvoice {
+    return to_candid_record_n11(_uploadFile, _downloadFile, value);
+}
+function to_candid_TaxMode_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TaxMode): _TaxMode {
+    return to_candid_variant_n15(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserRole_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n9(_uploadFile, _downloadFile, value);
@@ -354,6 +1033,54 @@ function to_candid__CaffeineStorageRefillInformation_n2(_uploadFile: (file: Exte
 function to_candid_opt_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CaffeineStorageRefillInformation | null): [] | [__CaffeineStorageRefillInformation] {
     return value === null ? candid_none() : candid_some(to_candid__CaffeineStorageRefillInformation_n2(_uploadFile, _downloadFile, value));
 }
+function to_candid_record_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: InvoiceId;
+    customerName: string;
+    owner: Principal;
+    date: Time;
+    createdAt: Time;
+    invoiceNumber: string;
+    totalAmount: Money;
+    notes: string;
+    customerId: CustomerId;
+    gstType: GSTType;
+    items: Array<InvoiceItem>;
+    taxAmount: Money;
+    taxMode: TaxMode;
+    subtotal: Money;
+}): {
+    id: _InvoiceId;
+    customerName: string;
+    owner: Principal;
+    date: _Time;
+    createdAt: _Time;
+    invoiceNumber: string;
+    totalAmount: _Money;
+    notes: string;
+    customerId: _CustomerId;
+    gstType: _GSTType;
+    items: Array<_InvoiceItem>;
+    taxAmount: _Money;
+    taxMode: _TaxMode;
+    subtotal: _Money;
+} {
+    return {
+        id: value.id,
+        customerName: value.customerName,
+        owner: value.owner,
+        date: value.date,
+        createdAt: value.createdAt,
+        invoiceNumber: value.invoiceNumber,
+        totalAmount: value.totalAmount,
+        notes: value.notes,
+        customerId: value.customerId,
+        gstType: to_candid_GSTType_n12(_uploadFile, _downloadFile, value.gstType),
+        items: value.items,
+        taxAmount: value.taxAmount,
+        taxMode: to_candid_TaxMode_n14(_uploadFile, _downloadFile, value.taxMode),
+        subtotal: value.subtotal
+    };
+}
 function to_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     proposed_top_up_amount?: bigint;
 }): {
@@ -362,6 +1089,28 @@ function to_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     return {
         proposed_top_up_amount: value.proposed_top_up_amount ? candid_some(value.proposed_top_up_amount) : candid_none()
     };
+}
+function to_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: GSTType): {
+    igst: null;
+} | {
+    cgst_sgst: null;
+} {
+    return value == GSTType.igst ? {
+        igst: null
+    } : value == GSTType.cgst_sgst ? {
+        cgst_sgst: null
+    } : value;
+}
+function to_candid_variant_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TaxMode): {
+    inclusive: null;
+} | {
+    exclusive: null;
+} {
+    return value == TaxMode.inclusive ? {
+        inclusive: null
+    } : value == TaxMode.exclusive ? {
+        exclusive: null
+    } : value;
 }
 function to_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {
     admin: null;
